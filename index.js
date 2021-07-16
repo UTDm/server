@@ -1,65 +1,62 @@
-const http = require('http');
-const express = require('express');
-const socketio = require('socket.io');
-const cors = require('cors');
+import { createServer } from 'http';
+import express from 'express';
+import { Server } from "socket.io";
+import cors from 'cors';
 
-const router = require('./router');
-const { addUser, removeUser, getUsersInRoom } = require('./users');
+import router from './router.js';
+import { addUser, removeUser, getRoomUserList, getUser} from './user.js';
 
 const randomId = () => crypto.randomBytes(8).toString("hex");
 
 const app = express();
-const server = http.createServer(app);
-const io = socketio(server);
+const server = createServer(app);
+const io = new Server(server);
 
 app.use(cors());
 app.use(router);
 
 io.on('connect', (socket) => {
-    
-    socket.on('join', ({name, roomId}, callBack) => {
-        socket.userId = randomId();
-        socket.userName = name;
-        socket.roomId = roomId;
+    socket.on('join', ({name, roomId}) => {
+        let userId = socket.id;
 
-        const user = await addUser(socket.userId, name, roomId);
-        const userList = await getRoomUserList(roomId);
+        //TODO: catch error
+        const user = addUser(userId, name, roomId);
+        const userList = getRoomUserList(roomId);
 
-        socket.join(room);
-        io.to(user.roomId).emit('getUserList', {roomId: roomId, users: userList});
+        socket.join(roomId);
+        io.to(user.roomId).emit('getUserList', {users: userList});
         io.to(user.roomId).emit('newMessage', {
-            message: `${user.name} has joined the room`,
+            context: name + " has joined the room",
             from: "admin",
         });
-
-        callBack(user);
     });
 
-    socket.on("sendMessage", (message) => {
-        const user = getUser(socket.userId);
+    socket.on("sendMessage", (context) => {
+        const user = getUser(socket.id);
 
-        io.to(socket.roomId).emit("newMessage", {
-            message,
-            from: user.userID,
+        io.to(user.roomId).emit("newMessage", {
+            context,
+            from: socket.id,
         });
     });
 
     socket.on('disconnect', () => {
         
-        const user = await getUser(socket.userId);
-        await removeUser(user.userId);
-        const userList = await getRoomUserList(roomId);
+        console.log("disconneted")
+        //TODO: remove current user
+        /*const user = getUser(socket.userId);
+        removeUser(user.userId);
+        const userList = getRoomUserList(roomId);
     
         if(user) {
             io.to(user.roomId).emit('newMessage', {
-                message: `${user.name} has left the room`,
+                context: `${user.name} has left the room`,
                 from: "admin",
             });
             io.to(user.roomId).emit('getUserList', {roomId: roomId, users: userList});
-        }
+        }*/
     })
 
 });
-
 
 server.listen(process.env.PORT || 5000, () => console.log(`Server has started.`));

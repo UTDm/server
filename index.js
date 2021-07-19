@@ -40,21 +40,21 @@ io.on('connect', (socket) => {
         });
     });
 
-    socket.on('disconnect', () => {
-        
-        console.log("disconneted")
+    socket.on('disconnected', () => {
         //TODO: remove current user
-        /*const user = getUser(socket.userId);
+        const user = getUser(socket.id);
         removeUser(user.userId);
-        const userList = getRoomUserList(roomId);
+        const userList = getRoomUserList(user.roomId);
     
         if(user) {
             io.to(user.roomId).emit('newMessage', {
                 context: `${user.name} has left the room`,
                 from: "admin",
             });
-            io.to(user.roomId).emit('getUserList', {roomId: roomId, users: userList});
-        }*/
+            io.to(user.roomId).emit('getUserList', {roomId: user.roomId, users: userList});
+        }
+
+        console.log(`${socket.id} has disconneted from room ${user.roomId}`)
     })
 
 });

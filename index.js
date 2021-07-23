@@ -6,8 +6,6 @@ import cors from 'cors';
 import router from './router.js';
 import { addUser, removeUser, getRoomUserList, getUser} from './user.js';
 
-const randomId = () => crypto.randomBytes(8).toString("hex");
-
 const app = express();
 const server = createServer(app);
 const io = new Server(server);
@@ -16,34 +14,36 @@ app.use(cors());
 app.use(router);
 
 io.on('connect', (socket) => {
-    socket.on('join', ({name, roomId}) => {
-        let userId = socket.id;
-
+    socket.on('join', ({name, userId, roomId}) => {
         //TODO: catch error
         const user = addUser(userId, name, roomId);
-        const userList = getRoomUserList(roomId);
 
-        socket.join(roomId);
-        io.to(user.roomId).emit('getUserList', {users: userList});
-        io.to(user.roomId).emit('newMessage', {
-            context: name + " has joined the room",
-            from: "admin",
-        });
+        if (user) {
+            const userList = getRoomUserList(roomId);
+
+            socket.join(roomId);
+            io.to(user.roomId).emit('getUserList', { users: userList });
+            io.to(user.roomId).emit('newMessage', {
+                context: name + " has joined the room",
+                from: "admin",
+            });
+        }
     });
 
-    socket.on("sendMessage", (context) => {
-        const user = getUser(socket.id);
+    socket.on("sendMessage", ({context, from}) => {
+        const user = getUser(from);
 
         io.to(user.roomId).emit("newMessage", {
             context,
-            from: socket.id,
+            from: from,
         });
     });
 
-    socket.on('disconnected', () => {
+    socket.on('disconnected', (userId) => {
         //TODO: remove current user
-        const user = getUser(socket.id);
-        removeUser(user.userId);
+        console.log(`${userId} has disconnected`)
+        const user = getUser(userId);
+        removeUser(userId);
         const userList = getRoomUserList(user.roomId);
     
         if(user) {
@@ -54,7 +54,7 @@ io.on('connect', (socket) => {
             io.to(user.roomId).emit('getUserList', {roomId: user.roomId, users: userList});
         }
 
-        console.log(`${socket.id} has disconneted from room ${user.roomId}`)
+        console.log(`${userId} has disconneted from room ${user.roomId}`)
     })
 
 });

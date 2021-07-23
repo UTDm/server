@@ -44,9 +44,10 @@ io.on('connect', (socket) => {
         console.log(`${userId} has disconnected`)
         const user = getUser(userId);
         removeUser(userId);
-        const userList = getRoomUserList(user.roomId);
     
         if(user) {
+            const userList = getRoomUserList(user.roomId);
+
             io.to(user.roomId).emit('newMessage', {
                 context: `${user.name} has left the room`,
                 from: "admin",
@@ -54,7 +55,7 @@ io.on('connect', (socket) => {
             io.to(user.roomId).emit('getUserList', {roomId: user.roomId, users: userList});
         }
 
-        console.log(`${userId} has disconneted from room ${user.roomId}`)
+        //console.log(`${userId} has disconneted from room ${user.roomId}`)
     })
 
 });

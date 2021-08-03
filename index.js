@@ -4,7 +4,7 @@ import { Server } from "socket.io";
 import cors from 'cors';
 
 import router from './router.js';
-import { addUser, removeUser, getRoomUserList, getUser} from './user.js';
+import { addUser, removeUser, getRoomUserList, getUser} from './service.js';
 
 const app = express();
 const server = createServer(app);
@@ -14,14 +14,14 @@ app.use(cors());
 app.use(router);
 
 io.on('connect', (socket) => {
-    socket.on('join', ({name, userId, roomId}) => {
+    socket.on('join', ({name, userId, course}) => {
         //TODO: catch error
-        const user = addUser(userId, name, roomId);
+        const user = addUser(userId, name, course);
 
         if (user) {
-            const userList = getRoomUserList(roomId);
+            const userList = getRoomUserList(user.roomId);
 
-            socket.join(roomId);
+            socket.join(user.roomId);
             io.to(user.roomId).emit('getUserList', { users: userList });
             io.to(user.roomId).emit('newMessage', {
                 context: name + " has joined the room",
